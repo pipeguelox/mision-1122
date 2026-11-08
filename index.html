@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="Misión 1122">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css">
+<link rel="stylesheet" href="estilos.css?v=8">
 </head>
 <body>
   <header>
@@ -141,7 +141,12 @@
 
   <div id="aviso"></div>
 
-  <script src="datos.js"></script>
+  <script>
+    // Si algo falla, mostrar la app igual y avisar
+    window.addEventListener("error", e => { document.body.classList.add("lista"); });
+    window.addEventListener("unhandledrejection", e => { document.body.classList.add("lista"); });
+  </script>
+  <script src="datos.js?v=8"></script>
   <script>
     document.getElementById("leyenda").innerHTML =
       SUBREGIONES.map(s => `<div><i style="background:${s.color}"></i>${s.nombre}</div>`).join("");
@@ -152,9 +157,9 @@
     document.getElementById("ver-instalar").onclick = () => document.getElementById("modal-instalar").showModal();
     document.getElementById("cerrar-instalar").onclick = () => document.getElementById("modal-instalar").close();
   </script>
-  <script src="app.js"></script>
-  <script src="medios.js"></script>
-  <script src="logros.js"></script>
-  <script src="compartir.js"></script>
+  <script src="app.js?v=8"></script>
+  <script src="medios.js?v=8"></script>
+  <script src="logros.js?v=8"></script>
+  <script src="compartir.js?v=8"></script>
 </body>
 </html>

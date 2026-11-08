@@ -1,5 +1,5 @@
 // Service worker: guarda la app en el celular para que abra rápido y sin internet.
-const VERSION = "mision-1122-v7";
+const VERSION = "mision-1122-v8";
 const ARCHIVOS = ["./", "index.html", "estilos.css", "datos.js", "app.js", "medios.js", "logros.js", "compartir.js", "antioquia.json", "rios.json",
   "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
@@ -14,7 +14,7 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   e.respondWith(
-    fetch(e.request).then(r => {
+    fetch(e.request, { cache: "no-cache" }).then(r => {
       const copia = r.clone();
       caches.open(VERSION).then(c => c.put(e.request, copia)).catch(() => {});
       return r;

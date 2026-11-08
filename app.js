@@ -309,8 +309,9 @@ buscador.addEventListener("input", pintarLista);
 // ---------- 5. Contador y pintado general ----------
 function pintarTodo() {
   const n = Object.keys(estado.visitados).length;
-  document.getElementById("contador").innerHTML = `<b>${n}</b> / 1.122`;
-  document.getElementById("zona-n").textContent = `${n} / ${TOTAL_MUNICIPIOS}`;
+  const poner = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  poner("contador", `<b>${n}</b> / 1.122`);
+  poner("zona-n", `${n} / ${TOTAL_MUNICIPIOS}`);
   document.getElementById("progreso").style.width = (n / TOTAL_MUNICIPIOS * 100) + "%";
   gMunis.querySelectorAll("path").forEach(p => p.classList.toggle("conocido", conocido(p.dataset.c)));
   pintarLista();
@@ -411,6 +412,7 @@ function aviso(texto) {
 
 // ---------- 8. Arranque ----------
 (async function iniciar() {
+  setTimeout(() => document.body.classList.add("lista"), 2500); // nunca dejar la pantalla en negro
   await cargarEstado();
   try { await dibujarMapa(); }
   catch (e) { document.getElementById("vista-mapa").insertAdjacentHTML("beforeend", `<p class="error">No se pudo cargar el mapa. Revisa tu conexión y vuelve a abrir la app.</p>`); }
