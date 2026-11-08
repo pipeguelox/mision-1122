@@ -98,6 +98,7 @@ const ventana = document.getElementById("clip-ventana");
 let inicioClip = 0, urlVideo = null, duracionVideo = 0;
 
 const esperar = (el, ev) => new Promise(ok => el.addEventListener(ev, ok, { once: true }));
+const conTiempo = (p, ms) => Promise.race([p, new Promise(ok => setTimeout(ok, ms))]);
 const mmss = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 
 document.getElementById("in-clip").onchange = async (e) => {
@@ -110,6 +111,10 @@ document.getElementById("in-clip").onchange = async (e) => {
   document.getElementById("clip-usar").disabled = false;
   editor.showModal();
   await esperar(vid, "loadedmetadata");
+  if (!isFinite(vid.duration)) {   // algunos videos no traen su duración: la buscamos
+    vid.currentTime = 1e9; await conTiempo(esperar(vid, "durationchange"), 3000);
+    vid.currentTime = 0; await conTiempo(esperar(vid, "seeked"), 3000);
+  }
   duracionVideo = vid.duration;
   inicioClip = 0;
   const anchoVentana = Math.min(1, DURACION_CLIP / duracionVideo);
