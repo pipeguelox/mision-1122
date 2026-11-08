@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Misión 1122</title>
+<meta name="theme-color" content="#14213d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Misión 1122">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fondo:#f4efe6; --tinta:#14213d; --suave:#6b7280; --tarjeta:#ffffff;
+    --acento:#ff6b2c; --agua:#3a86c8;
+    --arriba:env(safe-area-inset-top,0px); --abajo:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--fondo);color:var(--tinta);
+    font-family:"Outfit",system-ui,sans-serif;overscroll-behavior:none}
+  body{display:flex;flex-direction:column;opacity:0;transition:opacity .3s}
+  body.lista{opacity:1}
+
+  header{padding:calc(var(--arriba) + 12px) 18px 12px;background:var(--tinta);color:#fff;
+    box-shadow:0 4px 18px rgba(20,33,61,.25);z-index:5}
+  .titulo{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .avance{display:flex;align-items:center;gap:12px;margin-top:10px}
+  .avance .pista{flex:1;margin:0}
+  .etapa{font-size:12px;opacity:.8;white-space:nowrap}
+  .etapa b{font-weight:600}
+  h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.3px}
+  h1 span{color:var(--acento)}
+  #contador{font-size:15px;opacity:.85}
+  #contador b{font-size:24px;font-weight:800;color:#fff}
+  .pista{height:6px;background:rgba(255,255,255,.15);border-radius:6px;margin-top:10px;overflow:hidden}
+  #progreso{height:100%;width:0;border-radius:6px;transition:width .5s;
+    background:linear-gradient(90deg,#ffb703,var(--acento))}
+
+  main{flex:1;position:relative;overflow:hidden}
+  .vista{position:absolute;inset:0}
+
+  #vista-mapa{background:radial-gradient(circle at 50% 40%,#fbf8f2,#e9e1d3)}
+  #mapa{width:100%;height:100%;touch-action:none;display:block;cursor:grab}
+  #g-munis path{fill:color-mix(in srgb,var(--color) 18%,#fffaf2);stroke:#fff;stroke-width:.8;
+    vector-effect:non-scaling-stroke;transition:fill .3s}
+  #g-munis path.conocido{fill:var(--color)}
+  #g-munis path.sel{stroke:var(--tinta);stroke-width:2.5}
+  .rio{fill:none;stroke:var(--agua);stroke-width:1.2;vector-effect:non-scaling-stroke;
+    stroke-linecap:round;stroke-linejoin:round;opacity:.75;pointer-events:none}
+  .rio-grande{stroke-width:2.4;opacity:.9}
+  #g-etiquetas text{font-size:calc(var(--k,1) * 15px);font-weight:800;text-anchor:middle;
+    dominant-baseline:middle;fill:var(--tinta);paint-order:stroke;stroke:#fff;
+    stroke-width:calc(var(--k,1) * 4px);pointer-events:none}
+  .zoom{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:8px}
+  .zoom button{width:40px;height:40px;border-radius:12px;border:0;background:#fff;color:var(--tinta);
+    font-size:20px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  .leyenda{position:absolute;left:10px;top:10px;font-size:11px;background:rgba(255,255,255,.85);
+    border-radius:10px;padding:6px 8px;line-height:1.5;max-width:46%}
+  .leyenda i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  .credito{position:absolute;left:10px;bottom:8px;font-size:9px;color:var(--suave)}
+  .error{position:absolute;inset:auto 20px 50% 20px;text-align:center;background:#fff;padding:14px;border-radius:12px}
+
+  #ficha{position:absolute;left:10px;right:10px;bottom:calc(10px + var(--abajo));background:var(--tarjeta);
+    border-radius:20px;padding:16px 18px;box-shadow:0 10px 30px rgba(20,33,61,.25);
+    transform:translateY(150%);transition:transform .3s cubic-bezier(.2,.9,.3,1.2);z-index:4}
+  #ficha.abierta{transform:none}
+  .f-sub{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+  .f-nombre{font-size:24px;font-weight:800;margin:2px 0}
+  .f-fecha{font-size:13px;color:var(--suave);margin-bottom:12px}
+  .f-btn{width:100%;padding:14px;border:0;border-radius:14px;background:var(--tinta);color:#fff;
+    font:inherit;font-size:16px;font-weight:600}
+  .f-btn.quitar{background:#eee;color:var(--suave)}
+  .f-cerrar{position:absolute;right:10px;top:8px;border:0;background:none;font-size:22px;color:var(--suave)}
+
+  #vista-lista{overflow-y:auto;padding:12px 14px calc(140px + var(--abajo))}
+  #buscador{width:100%;padding:12px 14px;border-radius:14px;border:1px solid #ddd3c2;font:inherit;
+    font-size:16px;background:#fff;margin-bottom:6px}
+  section{margin-top:18px}
+  section h3{display:flex;justify-content:space-between;margin:0 0 6px;font-size:16px}
+  section h3 span{color:var(--color)}
+  section h3 small{color:var(--suave);font-weight:400}
+  .barra{height:5px;background:#e6dccb;border-radius:4px;overflow:hidden;margin-bottom:6px}
+  .barra i{display:block;height:100%;background:var(--color)}
+  .fila{display:flex;align-items:center;gap:12px;padding:11px 12px;background:#fff;border-radius:12px;margin-top:6px}
+  .fila input{width:22px;height:22px;accent-color:var(--color);margin:0}
+  .fila .nombre{flex:1;font-size:16px}
+  .fila.hecho .nombre{text-decoration:line-through;text-decoration-color:var(--color);text-decoration-thickness:2px;color:var(--suave)}
+  .fila .ver{border:0;background:none;font-size:16px;padding:4px}
+
+  nav.pestanas{display:flex;background:#fff;padding:6px 10px calc(6px + var(--abajo));
+    box-shadow:0 -4px 16px rgba(0,0,0,.06);z-index:5}
+  nav.pestanas button{flex:1;border:0;background:none;padding:10px;font:inherit;font-size:15px;
+    color:var(--suave);border-radius:12px}
+  nav.pestanas button.activa{color:var(--tinta);font-weight:600;background:#f1ece3}
+
+  #btn-copia{border:0;flex-shrink:0;
+    background:var(--acento);color:#fff;font:inherit;font-weight:600;font-size:13px;
+    padding:9px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(255,107,44,.45);
+    display:flex;align-items:center;gap:6px}
+  #btn-copia.pendiente::after{content:"";width:8px;height:8px;border-radius:50%;background:#fff;
+    animation:latido 1.4s infinite}
+  @keyframes latido{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+
+  dialog{border:0;border-radius:22px;padding:22px;max-width:360px;width:calc(100% - 40px);color:var(--tinta)}
+  dialog::backdrop{background:rgba(20,33,61,.55);backdrop-filter:blur(3px)}
+  dialog h2{margin:0 0 8px;font-size:21px}
+  dialog p{margin:0 0 12px;line-height:1.45;font-size:15px}
+  dialog .chico{font-size:13px;color:var(--suave)}
+  .boton{display:block;width:100%;text-align:center;padding:13px;border:0;border-radius:14px;
+    font:inherit;font-size:16px;font-weight:600;margin-top:8px;cursor:pointer}
+  .b-principal{background:var(--acento);color:#fff}
+  .b-sec{background:#f1ece3;color:var(--tinta)}
+  .b-texto{background:none;color:var(--suave);font-weight:400}
+
+  #aviso{position:fixed;left:50%;top:calc(var(--arriba) + 90px);transform:translate(-50%,-20px);
+    background:var(--tinta);color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;
+    opacity:0;transition:.3s;z-index:9;pointer-events:none;white-space:nowrap}
+  #aviso.visible{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+  <header>
+    <div class="titulo">
+      <h1>Misión <span>1122</span></h1>
+      <button id="btn-copia">💾 Guardar copia</button>
+    </div>
+    <div class="avance">
+      <div class="etapa">Etapa Antioquia <b id="etapa-n">0 / 125</b></div>
+      <div class="pista"><div id="progreso"></div></div>
+      <div id="contador"><b>0</b> / 1.122</div>
+    </div>
+  </header>
+
+  <main>
+    <div class="vista" id="vista-mapa">
+      <svg id="mapa" xmlns="http://www.w3.org/2000/svg">
+        <g id="g-munis"></g>
+        <g id="g-rios"></g>
+        <g id="g-etiquetas"></g>
+      </svg>
+      <div class="leyenda" id="leyenda"></div>
+      <div class="zoom">
+        <button id="zoom-mas" aria-label="Acercar">+</button>
+        <button id="zoom-menos" aria-label="Alejar">−</button>
+        <button id="zoom-reset" aria-label="Ver todo">⤢</button>
+      </div>
+      <div class="credito">Ríos © OpenStreetMap · Municipios: DANE</div>
+      <div id="ficha">
+        <button class="f-cerrar" aria-label="Cerrar">×</button>
+        <div class="f-sub"></div>
+        <div class="f-nombre"></div>
+        <div class="f-fecha"></div>
+        <button class="f-btn"></button>
+      </div>
+    </div>
+
+    <div class="vista" id="vista-lista" hidden>
+      <input id="buscador" type="search" placeholder="Buscar municipio…" autocomplete="off">
+      <div id="lista-contenido"></div>
+    </div>
+  </main>
+
+  <nav class="pestanas">
+    <button data-p="mapa" class="activa">🗺️ Mapa</button>
+    <button data-p="lista">✓ Lista</button>
+  </nav>
+
+  <dialog id="modal-copia">
+    <h2>💾 Guardar copia</h2>
+    <p>Tus marcas se guardan solo en este celular. <b>Si borras los datos del navegador o cambias de celular, se pierde todo.</b></p>
+    <p>Para evitarlo, descarga una copia: es un archivo de respaldo que puedes volver a cargar cuando quieras.</p>
+    <p class="chico" id="ultima-copia"></p>
+    <button class="boton b-principal" id="descargar-copia">Descargar copia</button>
+    <label class="boton b-sec">Cargar una copia<input type="file" id="archivo-copia" accept=".json,application/json" hidden></label>
+    <button class="boton b-texto" id="cerrar-modal">Cerrar</button>
+  </dialog>
+
+  <div id="aviso"></div>
+
+  <script src="datos.js"></script>
+  <script>
+    document.getElementById("leyenda").innerHTML =
+      SUBREGIONES.map(s => `<div><i style="background:${s.color}"></i>${s.nombre}</div>`).join("");
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
