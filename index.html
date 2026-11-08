@@ -48,6 +48,11 @@
         <div class="f-sub"></div>
         <div class="f-nombre"></div>
         <div class="f-fecha"></div>
+        <div class="f-galeria" hidden></div>
+        <div class="f-acciones">
+          <label class="mini">📸 Fotos<input type="file" id="in-foto" accept="image/*" multiple hidden></label>
+          <label class="mini">🎬 Clip 3 s<input type="file" id="in-clip" accept="video/*" hidden></label>
+        </div>
         <button class="f-btn"></button>
       </div>
     </div>
@@ -84,6 +89,31 @@
     <button class="boton b-principal" id="cerrar-instalar">Entendido</button>
   </dialog>
 
+  <dialog id="modal-clip">
+    <h2>🎬 Escoge 3 segundos</h2>
+    <video id="clip-video" muted playsinline loop></video>
+    <div id="clip-tira"><div id="clip-ventana"></div></div>
+    <p class="chico">Desliza el recuadro para escoger el pedazo: <b id="clip-tiempo"></b></p>
+    <p class="chico" id="clip-estado"></p>
+    <button class="boton b-principal" id="clip-usar">Usar este pedazo</button>
+    <button class="boton b-texto" id="clip-cancelar">Cancelar</button>
+  </dialog>
+
+  <dialog id="visor">
+    <div class="v-medio"></div>
+    <div class="v-barra">
+      <span class="v-info"></span>
+      <button class="v-borrar">🗑 Borrar</button>
+      <button class="v-cerrar">✕</button>
+    </div>
+  </dialog>
+
+  <dialog id="modal-confirmar">
+    <p></p>
+    <button class="boton b-principal si">Sí</button>
+    <button class="boton b-texto no">Cancelar</button>
+  </dialog>
+
   <div id="aviso"></div>
 
   <script src="datos.js"></script>
@@ -98,5 +128,6 @@
     document.getElementById("cerrar-instalar").onclick = () => document.getElementById("modal-instalar").close();
   </script>
   <script src="app.js"></script>
+  <script src="medios.js"></script>
 </body>
 </html>

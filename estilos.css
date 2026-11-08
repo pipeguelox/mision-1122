@@ -52,6 +52,7 @@
     border-radius:20px;padding:16px 18px;border:1px solid var(--linea);box-shadow:0 10px 30px rgba(0,0,0,.6);
     transform:translateY(150%);transition:transform .3s cubic-bezier(.2,.9,.3,1.2);z-index:4}
   #ficha.abierta{transform:none}
+  #ficha{max-height:75%;overflow-y:auto}
   .f-sub{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
   .f-nombre{font-size:24px;font-weight:800;margin:2px 0}
   .f-fecha{font-size:13px;color:var(--suave);margin-bottom:12px}
@@ -113,3 +114,26 @@
   #instalar button{border:0;background:var(--tinta);color:#000;font:inherit;font-weight:700;font-size:12px;
     padding:6px 10px;border-radius:999px}
   dialog ol{margin:0 0 12px;padding-left:20px;line-height:1.5;font-size:15px}
+
+  .f-galeria{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+  .f-galeria img,.f-galeria video{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:#222;display:block}
+  .f-acciones{display:flex;gap:8px;margin-bottom:10px}
+  .mini{flex:1;text-align:center;padding:11px 8px;border-radius:12px;background:#222;color:var(--tinta);
+    font-weight:600;font-size:14px;cursor:pointer}
+  .n-medios{font-size:12px;color:var(--suave)}
+
+  #clip-video{width:100%;max-height:45vh;border-radius:12px;background:#000;display:block;margin-bottom:10px}
+  #clip-tira{position:relative;display:flex;height:48px;border-radius:8px;overflow:hidden;background:#222;touch-action:none}
+  #clip-tira canvas{flex:1;width:0;height:100%;object-fit:cover;opacity:.55}
+  #clip-ventana{position:absolute;top:0;bottom:0;border:3px solid var(--tinta);border-radius:8px;
+    box-shadow:0 0 0 999px rgba(0,0,0,.45);pointer-events:none}
+  #clip-tira + p{margin-top:10px}
+  .boton:disabled{opacity:.5}
+
+  #visor{width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:#000}
+  #visor[open]{display:flex;flex-direction:column}
+  .v-medio{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+  .v-medio img,.v-medio video{max-width:100%;max-height:100%;object-fit:contain}
+  .v-barra{display:flex;align-items:center;gap:10px;padding:12px 14px calc(12px + var(--abajo))}
+  .v-info{flex:1;font-size:14px}
+  .v-barra button{border:0;background:#222;color:var(--tinta);font:inherit;font-size:14px;padding:9px 12px;border-radius:10px}

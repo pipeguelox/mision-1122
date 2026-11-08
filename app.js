@@ -1,6 +1,6 @@
 // =========================================================
-//  Misión 1122 — app principal (fase 1)
-//  Mapa + lista + contador + "Guardar copia"
+//  Misión 1122 — app principal (fase 2)
+//  Mapa + lista + contador + "Guardar copia" + recuerdos (fotos y clips)
 // =========================================================
 
 // ---------- 1. Guardado en el celular (IndexedDB) ----------
@@ -10,8 +10,12 @@ const DB = {
   async abrir() {
     if (this._db) return this._db;
     this._db = await new Promise((ok, mal) => {
-      const r = indexedDB.open("mi-antioquia", 1);
-      r.onupgradeneeded = () => r.result.createObjectStore("kv");
+      const r = indexedDB.open("mi-antioquia", 2);
+      r.onupgradeneeded = () => {
+        const db = r.result;
+        if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
+        if (!db.objectStoreNames.contains("medios")) db.createObjectStore("medios");
+      };
       r.onsuccess = () => ok(r.result);
       r.onerror = () => mal(r.error);
     });
@@ -36,8 +40,27 @@ const DB = {
         t.oncomplete = ok; t.onerror = () => mal(t.error);
       });
     } catch { localStorage.setItem(clave, JSON.stringify(valor)); }
+  },
+  // Fotos y clips: se guardan aparte, como archivos (Blob)
+  async medio(id) {
+    const db = await this.abrir();
+    return new Promise(ok => { const r = db.transaction("medios").objectStore("medios").get(id); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); });
+  },
+  async guardarMedio(id, blob) {
+    const db = await this.abrir();
+    return new Promise((ok, mal) => { const t = db.transaction("medios", "readwrite"); t.objectStore("medios").put(blob, id); t.oncomplete = ok; t.onerror = () => mal(t.error); });
+  },
+  async borrarMedio(id) {
+    const db = await this.abrir();
+    return new Promise(ok => { const t = db.transaction("medios", "readwrite"); t.objectStore("medios").delete(id); t.oncomplete = ok; t.onerror = ok; });
   }
 };
+
+// Fecha de hoy en hora de Colombia (no en hora universal)
+function hoyLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 // Estado: qué municipios conoces y cuándo los marcaste
 let estado = { visitados: {}, ultimaCopia: null, cambiosSinCopia: 0 };
@@ -53,8 +76,13 @@ async function guardarEstado() { await DB.guardar("estado", estado); }
 function conocido(c) { return !!estado.visitados[c]; }
 
 async function alternar(c) {
-  if (conocido(c)) delete estado.visitados[c];
-  else estado.visitados[c] = { fecha: new Date().toISOString().slice(0, 10) };
+  if (conocido(c)) {
+    const n = (estado.visitados[c].medios || []).length;
+    if (n && !(await confirmar(`¿Quitar ${NOMBRES[c]}? Se borrarán también sus ${n} recuerdos.`))) return;
+    for (const m of estado.visitados[c].medios || []) await DB.borrarMedio(m.id);
+    delete estado.visitados[c];
+  }
+  else estado.visitados[c] = { fecha: hoyLocal(), medios: [] };
   estado.cambiosSinCopia++;
   await guardarEstado();
   pintarTodo();
@@ -235,6 +263,7 @@ function pintarFicha() {
   const btn = ficha.querySelector(".f-btn");
   btn.textContent = v ? "Quitar de conocidos" : "✓ Lo conozco";
   btn.classList.toggle("quitar", !!v);
+  if (window.pintarRecuerdos) pintarRecuerdos(c);
 }
 document.querySelector("#ficha .f-btn").onclick = () => seleccionado && alternar(seleccionado);
 document.querySelector("#ficha .f-cerrar").onclick = () => seleccionar(null);
@@ -265,8 +294,9 @@ function pintarLista() {
     cods.forEach(c => {
       const fila = document.createElement("label");
       fila.className = "fila" + (conocido(c) ? " hecho" : "");
+      const nm = conocido(c) ? (estado.visitados[c].medios || []).length : 0;
       fila.innerHTML = `<input type="checkbox" ${conocido(c) ? "checked" : ""}><span class="nombre">${NOMBRES[c]}</span>
-        <button class="ver" title="Ver en el mapa">📍</button>`;
+        ${nm ? `<span class="n-medios">📸 ${nm}</span>` : ""}<button class="ver" title="Ver en el mapa">📍</button>`;
       fila.querySelector("input").onchange = () => alternar(c);
       fila.querySelector(".ver").onclick = (e) => { e.preventDefault(); cambiarPestana("mapa"); irA(c); seleccionar(c); };
       sec.appendChild(fila);
@@ -307,8 +337,14 @@ document.getElementById("btn-copia").onclick = () => {
 document.getElementById("cerrar-modal").onclick = () => modal.close();
 
 document.getElementById("descargar-copia").onclick = async () => {
-  const hoy = new Date().toISOString().slice(0, 10);
-  const datos = { app: "mi-antioquia", version: 1, fecha: hoy, visitados: estado.visitados };
+  const hoy = hoyLocal();
+  aviso("Preparando copia…");
+  const medios = {};
+  for (const v of Object.values(estado.visitados)) for (const m of v.medios || []) {
+    const b = await DB.medio(m.id);
+    if (b) medios[m.id] = { tipo: b.type, datos: await aBase64(b) };
+  }
+  const datos = { app: "mi-antioquia", version: 2, fecha: hoy, visitados: estado.visitados, medios };
   const archivo = new File([JSON.stringify(datos)], `mision-1122-copia-${hoy}.json`, { type: "application/json" });
   // En el celular intentamos "Compartir" (guardar en Archivos / Drive); si no, descarga normal
   let hecho = false;
@@ -333,12 +369,38 @@ document.getElementById("archivo-copia").onchange = async (e) => {
   try {
     const datos = JSON.parse(await f.text());
     if (datos.app !== "mi-antioquia" || !datos.visitados) throw new Error("formato");
+    aviso("Cargando copia…");
+    for (const [id, m] of Object.entries(datos.medios || {})) await DB.guardarMedio(id, deBase64(m.datos, m.tipo));
     // Unimos: no se pierde nada de lo que ya tenías marcado
-    estado.visitados = Object.assign({}, datos.visitados, estado.visitados);
+    for (const [c, v] of Object.entries(datos.visitados)) {
+      if (!estado.visitados[c]) { estado.visitados[c] = v; continue; }
+      const ya = new Set((estado.visitados[c].medios || []).map(m => m.id));
+      estado.visitados[c].medios = (estado.visitados[c].medios || []).concat((v.medios || []).filter(m => !ya.has(m.id)));
+    }
     await guardarEstado(); pintarTodo(); modal.close();
     aviso(`Copia cargada: ${Object.keys(estado.visitados).length} municipios`);
   } catch { aviso("Ese archivo no es una copia de Misión 1122"); }
 };
+
+function aBase64(blob) {
+  return new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result.split(",")[1]); r.readAsDataURL(blob); });
+}
+function deBase64(b64, tipo) {
+  const bin = atob(b64); const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return new Blob([u], { type: tipo });
+}
+
+// Pregunta de sí / no con el estilo de la app
+function confirmar(texto) {
+  return new Promise(ok => {
+    const d = document.getElementById("modal-confirmar");
+    d.querySelector("p").textContent = texto;
+    d.querySelector(".si").onclick = () => { d.close(); ok(true); };
+    d.querySelector(".no").onclick = () => { d.close(); ok(false); };
+    d.showModal();
+  });
+}
 
 function aviso(texto) {
   const t = document.getElementById("aviso");
