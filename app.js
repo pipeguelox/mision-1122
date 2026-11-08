@@ -310,7 +310,7 @@ buscador.addEventListener("input", pintarLista);
 function pintarTodo() {
   const n = Object.keys(estado.visitados).length;
   document.getElementById("contador").innerHTML = `<b>${n}</b> / 1.122`;
-  document.getElementById("etapa-n").textContent = `${n} / ${TOTAL_MUNICIPIOS}`;
+  document.getElementById("zona-n").textContent = `${n} / ${TOTAL_MUNICIPIOS}`;
   document.getElementById("progreso").style.width = (n / TOTAL_MUNICIPIOS * 100) + "%";
   gMunis.querySelectorAll("path").forEach(p => p.classList.toggle("conocido", conocido(p.dataset.c)));
   pintarLista();

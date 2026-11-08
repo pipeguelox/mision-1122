@@ -1,2 +1,4 @@
-# mision-1122
-Misión 1122: marca los municipios de Colombia que conoces. Etapa 1: Antioquia.
+# Misión 1122
+Marca los municipios de Colombia que conoces. Empieza por Antioquia.
+
+App: https://pipeguelox.github.io/mision-1122/

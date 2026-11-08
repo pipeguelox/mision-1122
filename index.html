@@ -22,7 +22,7 @@
       <button id="btn-copia">💾 Guardar copia</button>
     </div>
     <div class="avance">
-      <div class="etapa">Etapa Antioquia <b id="etapa-n">0 / 125</b></div>
+      <div class="zona">Antioquia <b id="zona-n">0 / 125</b></div>
       <div class="pista"><div id="progreso"></div></div>
       <div id="contador"><b>0</b> / 1.122</div>
     </div>
@@ -43,6 +43,7 @@
         <button id="zoom-reset" aria-label="Ver todo">⤢</button>
       </div>
       <div class="credito">Ríos © OpenStreetMap · Municipios: DANE</div>
+      <button class="btn-compartir flotante">📤 Compartir</button>
       <div id="ficha">
         <button class="f-cerrar" aria-label="Cerrar">×</button>
         <div class="f-sub"></div>
@@ -60,6 +61,7 @@
     <div class="vista" id="vista-logros" hidden>
       <h2 class="logros-titulo">🏅 Logros <small id="logros-resumen"></small></h2>
       <div id="logros-contenido"></div>
+      <button class="btn-compartir boton b-principal">📤 Compartir mi avance</button>
     </div>
 
     <div class="vista" id="vista-lista" hidden>
@@ -120,6 +122,15 @@
     <button class="boton b-texto no">Cancelar</button>
   </dialog>
 
+  <dialog id="modal-compartir">
+    <h2>📤 Compartir en historias</h2>
+    <img id="comp-previa" alt="Vista previa de la imagen para historias">
+    <p class="chico">Fondo:</p>
+    <div id="comp-fondos"></div>
+    <button class="boton b-principal" id="comp-compartir">Compartir imagen</button>
+    <button class="boton b-texto" id="comp-cerrar">Cerrar</button>
+  </dialog>
+
   <div id="celebracion">
     <div class="c-insignia"></div>
     <div class="c-titulo"></div>
@@ -144,5 +155,6 @@
   <script src="app.js"></script>
   <script src="medios.js"></script>
   <script src="logros.js"></script>
+  <script src="compartir.js"></script>
 </body>
 </html>
