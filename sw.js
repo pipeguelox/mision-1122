@@ -1,6 +1,6 @@
 // Service worker: guarda la app en el celular para que abra rápido y sin internet.
-const VERSION = "mision-1122-v4";
-const ARCHIVOS = ["./", "index.html", "estilos.css", "datos.js", "app.js", "medios.js", "antioquia.json", "rios.json",
+const VERSION = "mision-1122-v5";
+const ARCHIVOS = ["./", "index.html", "estilos.css", "datos.js", "app.js", "medios.js", "logros.js", "antioquia.json", "rios.json",
   "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

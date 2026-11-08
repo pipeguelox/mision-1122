@@ -57,6 +57,11 @@
       </div>
     </div>
 
+    <div class="vista" id="vista-logros" hidden>
+      <h2 class="logros-titulo">🏅 Logros <small id="logros-resumen"></small></h2>
+      <div id="logros-contenido"></div>
+    </div>
+
     <div class="vista" id="vista-lista" hidden>
       <input id="buscador" type="search" placeholder="Buscar municipio…" autocomplete="off">
       <div id="lista-contenido"></div>
@@ -66,6 +71,7 @@
   <nav class="pestanas">
     <button data-p="mapa" class="activa">🗺️ Mapa</button>
     <button data-p="lista">✓ Lista</button>
+    <button data-p="logros">🏅 Logros</button>
   </nav>
 
   <dialog id="modal-copia">
@@ -114,6 +120,14 @@
     <button class="boton b-texto no">Cancelar</button>
   </dialog>
 
+  <div id="celebracion">
+    <div class="c-insignia"></div>
+    <div class="c-titulo"></div>
+    <div class="c-texto"></div>
+    <button class="c-btn">¡Vamos!</button>
+  </div>
+  <canvas id="confeti"></canvas>
+
   <div id="aviso"></div>
 
   <script src="datos.js"></script>
@@ -129,5 +143,6 @@
   </script>
   <script src="app.js"></script>
   <script src="medios.js"></script>
+  <script src="logros.js"></script>
 </body>
 </html>

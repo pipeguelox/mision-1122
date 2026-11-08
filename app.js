@@ -316,6 +316,7 @@ function pintarTodo() {
   pintarLista();
   pintarFicha();
   document.getElementById("btn-copia").classList.toggle("pendiente", estado.cambiosSinCopia > 0);
+  if (window.revisarLogros) revisarLogros();
 }
 
 // ---------- 6. Pestañas ----------
