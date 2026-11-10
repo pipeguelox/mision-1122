@@ -177,3 +177,21 @@
   #comp-fondos button{flex:0 0 54px;height:54px;border-radius:12px;border:2px solid var(--linea);background:#000 center/cover;
     color:var(--tinta);font:inherit;font-size:11px;font-weight:600}
   #comp-fondos button.activo{border-color:var(--tinta)}
+
+  .modo{position:absolute;left:10px;top:10px;display:flex;background:#141414;border:1px solid var(--linea);border-radius:12px;padding:3px;z-index:2}
+  .modo button{border:0;background:none;color:var(--suave);font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:9px}
+  .modo button.activo{background:var(--tinta);color:#000}
+  .leyenda{top:auto;bottom:30px}
+  #mapa.lejos #g-munis path{stroke-width:.35}
+  .recuadro-islas{fill:none;stroke:#555;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
+  details{margin-top:10px;background:#0d0d0d;border:1px solid var(--linea);border-radius:14px;padding:12px}
+  summary{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:16px;cursor:pointer;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary span{color:var(--color)}
+  summary span::before{content:"▸ ";color:var(--suave)}
+  details[open] summary span::before{content:"▾ "}
+  summary small{color:var(--suave);font-weight:400}
+  details .barra{margin:8px 0 2px}
+  .l-seccion{margin:6px 0 10px;font-size:15px;color:var(--suave);font-weight:600}
+  .l-grilla{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:22px}
+  #logros-contenido{display:block}

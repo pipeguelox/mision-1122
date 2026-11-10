@@ -1,13 +1,13 @@
 // =========================================================
-//  Misión 1122 — Imagen para compartir en historias (1080 x 1920)
+//  M1122 — Imagen para compartir en historias (1080 x 1920)
 // =========================================================
 const ANCHO = 1080, ALTO = 1920;
 let fondoElegido = "negro";   // "negro" o el id de una foto
 let geoCompartir = null, riosCompartir = null;
 
 async function datosMapa() {
-  if (!geoCompartir) geoCompartir = await fetch("antioquia.json").then(r => r.json());
-  if (!riosCompartir) riosCompartir = await fetch("rios.json").then(r => r.json()).catch(() => ({}));
+  const d = await datosDe(estado.modo);   // el mapa que estés viendo: Colombia o Antioquia
+  geoCompartir = d.geo; riosCompartir = d.rios;
 }
 
 function cargarImagen(src) {
@@ -54,14 +54,14 @@ async function crearImagenHistoria() {
   // ---- Encabezado
   x.textAlign = "left"; x.textBaseline = "alphabetic";
   x.font = "800 64px Outfit, sans-serif";
-  x.fillStyle = "#ff3b30"; x.fillText("Misión", 80, 170);
-  const anchoMision = x.measureText("Misión ").width;
+  x.fillStyle = "#ff3b30"; x.fillText("M", 80, 170);
+  const anchoMision = x.measureText("M").width;
   x.fillStyle = "#fff"; x.fillText("1122", 80 + anchoMision, 170);
   x.font = "600 34px Outfit, sans-serif"; x.fillStyle = "rgba(255,255,255,.7)";
-  x.fillText("ANTIOQUIA", 82, 222);
+  x.fillText(enAntioquia() ? "ANTIOQUIA" : "COLOMBIA", 82, 222);
 
   // ---- Mapa
-  const feats = geoCompartir.features;
+  const feats = geoCompartir.features.filter(f => grupoDe(f.properties.c));
   let minX = 999, minY = 999, maxX = -999, maxY = -999;
   const rec = c => { if (typeof c[0] === "number") { minX = Math.min(minX, c[0]); maxX = Math.max(maxX, c[0]); minY = Math.min(minY, c[1]); maxY = Math.max(maxY, c[1]); } else c.forEach(rec); };
   feats.forEach(f => rec(f.geometry.coordinates));
@@ -85,7 +85,7 @@ async function crearImagenHistoria() {
   // municipios conocidos, con brillo de su color
   caminos.forEach(m => {
     if (!conocido(m.c)) return;
-    const col = SUBREGION_DE[m.c].color;
+    const col = colorDe(m.c);
     x.save(); x.shadowColor = col; x.shadowBlur = 28; x.fillStyle = col; x.fill(m.p); x.restore();
   });
   // volumen: luz arriba
@@ -99,13 +99,14 @@ async function crearImagenHistoria() {
   // ríos
   x.strokeStyle = "rgba(80,170,255,.75)"; x.lineCap = "round";
   Object.entries(riosCompartir).forEach(([n, ls]) => {
-    x.lineWidth = ["Cauca", "Magdalena", "Atrato"].includes(n) ? 4 : 2;
+    x.lineWidth = MAPAS[estado.modo].grandes.includes(n) ? 4 : 2;
     ls.forEach(l => { x.beginPath(); l.forEach((pt, i) => { const [X, Y] = P(pt); i ? x.lineTo(X, Y) : x.moveTo(X, Y); }); x.stroke(); });
   });
 
   // ---- Números
-  const n = Object.keys(estado.visitados).length;
-  const pct = Math.round(n / TOTAL_MUNICIPIOS * 100);
+  const total = enAntioquia() ? TOTAL_MUNICIPIOS : 1122;
+  const n = enAntioquia() ? SUBREGIONES.reduce((a, s) => a + s.codigos.filter(conocido).length, 0) : Object.keys(estado.visitados).length;
+  const pct = n / total < .1 ? Math.round(n / total * 1000) / 10 : Math.round(n / total * 100);
   const yNum = 1440;
   x.textAlign = "left";
   x.font = "800 190px Outfit, sans-serif";
@@ -114,9 +115,9 @@ async function crearImagenHistoria() {
   x.save(); x.shadowColor = "rgba(255,59,48,.6)"; x.shadowBlur = 40; x.fillStyle = gn; x.fillText(String(n), 80, yNum); x.restore();
   const anchoN = x.measureText(String(n)).width;
   x.font = "600 54px Outfit, sans-serif"; x.fillStyle = "#fff";
-  x.fillText(`/ ${TOTAL_MUNICIPIOS}`, 80 + anchoN + 18, yNum - 8);
+  x.fillText(`/ ${total === 1122 ? "1.122" : total}`, 80 + anchoN + 18, yNum - 8);
   x.font = "600 40px Outfit, sans-serif"; x.fillStyle = "rgba(255,255,255,.75)";
-  x.fillText("municipios de Antioquia", 82, yNum + 60);
+  x.fillText(enAntioquia() ? "municipios de Antioquia" : "municipios de Colombia", 82, yNum + 60);
   // porcentaje a la derecha
   x.textAlign = "right"; x.font = "800 96px Outfit, sans-serif"; x.fillStyle = "#fff";
   x.fillText(pct + "%", ANCHO - 80, yNum - 10);
@@ -124,7 +125,7 @@ async function crearImagenHistoria() {
   const yb = yNum + 100;
   x.fillStyle = "rgba(255,255,255,.12)"; redondo(x, 80, yb, ANCHO - 160, 18, 9); x.fill();
   const gb = x.createLinearGradient(80, 0, ANCHO - 80, 0); gb.addColorStop(0, "#ff8a00"); gb.addColorStop(1, "#ff3b30");
-  x.fillStyle = gb; redondo(x, 80, yb, Math.max(18, (ANCHO - 160) * n / TOTAL_MUNICIPIOS), 18, 9); x.fill();
+  x.fillStyle = gb; redondo(x, 80, yb, Math.max(18, (ANCHO - 160) * n / total), 18, 9); x.fill();
 
   // ---- Insignias ganadas
   const ganadas = estadoLogros().filter(l => estado.logros && estado.logros[l.id]);
@@ -188,7 +189,7 @@ async function pintarFondos() {
 
 document.getElementById("comp-compartir").onclick = async () => {
   if (!imagenActual) return;
-  const archivo = new File([imagenActual], `mision-1122-${hoyLocal()}.png`, { type: "image/png" });
+  const archivo = new File([imagenActual], `m1122-${hoyLocal()}.png`, { type: "image/png" });
   if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
     try { await navigator.share({ files: [archivo] }); return; }
     catch (e) { if (e.name === "AbortError") return; }

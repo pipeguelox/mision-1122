@@ -1,6 +1,7 @@
 // =========================================================
-//  Misión 1122 — app principal (fase 2)
-//  Mapa + lista + contador + "Guardar copia" + recuerdos (fotos y clips)
+//  M1122 — app principal
+//  Mapa de Colombia (1.122 territorios) + Antioquia por subregiones
+//  Lista, contador, "Guardar copia" y recuerdos (fotos y clips)
 // =========================================================
 
 // ---------- 1. Guardado en el celular (IndexedDB) ----------
@@ -63,7 +64,7 @@ function hoyLocal() {
 }
 
 // Estado: qué municipios conoces y cuándo los marcaste
-let estado = { visitados: {}, ultimaCopia: null, cambiosSinCopia: 0 };
+let estado = { visitados: {}, ultimaCopia: null, cambiosSinCopia: 0, modo: "colombia" };
 
 async function cargarEstado() {
   const e = await DB.leer("estado");
@@ -88,13 +89,27 @@ async function alternar(c) {
   pintarTodo();
 }
 
-// ---------- 2. Mapa ----------
+// ---------- 2. Los dos mapas: Colombia y Antioquia ----------
+const MAPAS = {
+  colombia:  { geo: "colombia.json",  rios: "rios-colombia.json", grandes: ["Magdalena", "Cauca", "Amazonas", "Orinoco", "Caquetá", "Putumayo", "Meta", "Atrato"] },
+  antioquia: { geo: "antioquia.json", rios: "rios.json",          grandes: ["Cauca", "Magdalena", "Atrato"] }
+};
+const cacheMapas = {};
+const enAntioquia = () => estado.modo === "antioquia";
+
+// Grupos de la vista actual: subregiones (Antioquia) o departamentos (Colombia)
+function grupos() { return enAntioquia() ? SUBREGIONES : DEPARTAMENTOS; }
+function grupoDe(c) { return enAntioquia() ? SUBREGION_DE[c] : DEPTO_DE[c]; }
+function colorDe(c) { return enAntioquia() ? SUBREGION_DE[c].color : DEPTO_DE[c].color; }
+function leyendaActual() { return enAntioquia() ? SUBREGIONES : REGIONES; }
+
 const svg = document.getElementById("mapa");
 const gMunis = document.getElementById("g-munis");
 const gRios = document.getElementById("g-rios");
 const gEtiq = document.getElementById("g-etiquetas");
 let proyectar, vista, vistaInicial;
 let seleccionado = null;
+let gestosListos = false;
 
 // Convierte longitud/latitud en puntos x/y de la pantalla
 function crearProyeccion(features) {
@@ -121,41 +136,81 @@ function trazo(geom) {
   return polys.map(p => p.map(anillo).join("")).join("");
 }
 
+async function datosDe(modo) {
+  if (!cacheMapas[modo]) {
+    const m = MAPAS[modo];
+    const geo = await fetch(m.geo).then(r => r.json());
+    const rios = await fetch(m.rios).then(r => r.json()).catch(() => ({}));
+    cacheMapas[modo] = { geo, rios };
+  }
+  return cacheMapas[modo];
+}
+
 async function dibujarMapa() {
-  const geo = await fetch("antioquia.json").then(r => r.json());
+  const { geo, rios } = await datosDe(estado.modo);
+  gMunis.innerHTML = ""; gRios.innerHTML = ""; gEtiq.innerHTML = "";
   crearProyeccion(geo.features);
   const ns = "http://www.w3.org/2000/svg";
+  const frag = document.createDocumentFragment();
   geo.features.forEach(f => {
     const c = f.properties.c;
+    if (!grupoDe(c)) return;
     const p = document.createElementNS(ns, "path");
     p.setAttribute("d", trazo(f.geometry));
     p.dataset.c = c;
-    p.style.setProperty("--color", SUBREGION_DE[c].color);
-    gMunis.appendChild(p);
+    p.style.setProperty("--color", colorDe(c));
+    frag.appendChild(p);
   });
-  // Ríos (© colaboradores de OpenStreetMap)
-  try {
-    const rios = await fetch("rios.json").then(r => r.json());
-    Object.entries(rios).forEach(([nombre, lineas]) => {
-      lineas.forEach(l => {
-        if (l.length < 2) return;
-        const p = document.createElementNS(ns, "path");
-        p.setAttribute("d", "M" + l.map(pt => proyectar(pt).map(n => n.toFixed(1)).join(",")).join("L"));
-        const grande = ["Cauca", "Magdalena", "Atrato"].includes(nombre);
-        p.setAttribute("class", grande ? "rio rio-grande" : "rio");
-        gRios.appendChild(p);
-      });
+  gMunis.appendChild(frag);
+  // Recuadro para San Andrés y Providencia (las islas se muestran más cerca)
+  if (!enAntioquia()) {
+    const islas = [...gMunis.querySelectorAll('[data-c^="88"]')];
+    if (islas.length) {
+      const bb = islas.map(p => p.getBBox()).reduce((a, b) => ({ x1: Math.min(a.x1, b.x), y1: Math.min(a.y1, b.y), x2: Math.max(a.x2, b.x + b.width), y2: Math.max(a.y2, b.y + b.height) }), { x1: 1e9, y1: 1e9, x2: -1e9, y2: -1e9 });
+      const r = document.createElementNS(ns, "rect");
+      r.setAttribute("x", bb.x1 - 12); r.setAttribute("y", bb.y1 - 12);
+      r.setAttribute("width", bb.x2 - bb.x1 + 24); r.setAttribute("height", bb.y2 - bb.y1 + 24);
+      r.setAttribute("rx", 8); r.setAttribute("class", "recuadro-islas");
+      gRios.appendChild(r);
+    }
+  }
+  // Ríos (Natural Earth y © colaboradores de OpenStreetMap)
+  Object.entries(rios).forEach(([nombre, lineas]) => {
+    lineas.forEach(l => {
+      if (l.length < 2) return;
+      const p = document.createElementNS(ns, "path");
+      p.setAttribute("d", "M" + l.map(pt => proyectar(pt).map(n => n.toFixed(1)).join(",")).join("L"));
+      p.setAttribute("class", MAPAS[estado.modo].grandes.includes(nombre) ? "rio rio-grande" : "rio");
+      gRios.appendChild(p);
     });
-  } catch (e) { console.warn("Sin ríos", e); }
+  });
   aplicarVista();
-  activarGestos();
+  if (!gestosListos) { activarGestos(); gestosListos = true; }
+  pintarLeyenda();
 }
+
+function pintarLeyenda() {
+  document.getElementById("leyenda").innerHTML =
+    leyendaActual().map(s => `<div><i style="background:${s.color}"></i>${s.nombre}</div>`).join("");
+  document.querySelectorAll(".modo button").forEach(b => b.classList.toggle("activo", b.dataset.m === estado.modo));
+}
+
+async function cambiarModo(m) {
+  if (estado.modo === m) return;
+  estado.modo = m;
+  seleccionar(null);
+  await guardarEstado();
+  await dibujarMapa();
+  pintarTodo();
+}
+document.querySelectorAll(".modo button").forEach(b => b.onclick = () => cambiarModo(b.dataset.m));
 
 function aplicarVista() {
   svg.setAttribute("viewBox", `${vista.x} ${vista.y} ${vista.w} ${vista.h}`);
   // Grosor de líneas y letras constante aunque hagas zoom
-  const escala = vista.w / svg.clientWidth;
+  const escala = vista.w / (svg.clientWidth || 1);
   svg.style.setProperty("--k", escala);
+  svg.classList.toggle("lejos", !enAntioquia() && vista.w > vistaInicial.w * 0.45);
 }
 
 // Gestos: arrastrar para mover, pellizcar (dos dedos) para zoom, tocar para elegir
@@ -169,7 +224,7 @@ function activarGestos() {
              y: vista.y + (e.clientY - r.top) / r.height * vista.h };
   };
   const zoom = (factor, centro) => {
-    const nw = Math.min(vistaInicial.w * 1.3, Math.max(vistaInicial.w / 14, vista.w * factor));
+    const nw = Math.min(vistaInicial.w * 1.3, Math.max(vistaInicial.w / (enAntioquia() ? 14 : 40), vista.w * factor));
     const f = nw / vista.w;
     vista.x = centro.x - (centro.x - vista.x) * f;
     vista.y = centro.y - (centro.y - vista.y) * f;
@@ -205,7 +260,7 @@ function activarGestos() {
   const soltar = e => {
     if (dedos.size === 1 && inicio && movido < 10 && Date.now() - inicio.t < 500) {
       const el = document.elementFromPoint(e.clientX, e.clientY);
-      if (el && el.dataset && el.dataset.c) seleccionar(el.dataset.c);
+      if (el && el.dataset && el.dataset.c) tocarMunicipio(el.dataset.c);
       else seleccionar(null);
     }
     dedos.delete(e.pointerId);
@@ -217,19 +272,38 @@ function activarGestos() {
 
   document.getElementById("zoom-mas").onclick = () => zoom(0.7, { x: vista.x + vista.w / 2, y: vista.y + vista.h / 2 });
   document.getElementById("zoom-menos").onclick = () => zoom(1.4, { x: vista.x + vista.w / 2, y: vista.y + vista.h / 2 });
-  document.getElementById("zoom-reset").onclick = () => { vista = { ...vistaInicial }; aplicarVista(); };
+  document.getElementById("zoom-reset").onclick = () => { vista = { ...vistaInicial }; aplicarVista(); seleccionar(null); };
   window.addEventListener("resize", aplicarVista);
 }
 
-// Centra el mapa en un municipio (desde la lista)
-function irA(c) {
-  const p = gMunis.querySelector(`[data-c="${c}"]`);
-  if (!p) return;
-  const b = p.getBBox();
-  const w = Math.max(b.width, b.height) * 4;
+// En Colombia, el primer toque acerca al departamento; ya de cerca, elige el municipio
+function tocarMunicipio(c) {
+  if (!enAntioquia() && vista.w > vistaInicial.w * 0.45) { irAGrupo(DEPTO_DE[c]); return; }
+  seleccionar(c);
+}
+
+// Encuadra un conjunto de municipios en la pantalla
+function encuadrar(codigos, margen) {
+  const cajas = codigos.map(c => gMunis.querySelector(`[data-c="${c}"]`)).filter(Boolean).map(p => p.getBBox());
+  if (!cajas.length) return;
+  const x1 = Math.min(...cajas.map(b => b.x)), y1 = Math.min(...cajas.map(b => b.y));
+  const x2 = Math.max(...cajas.map(b => b.x + b.width)), y2 = Math.max(...cajas.map(b => b.y + b.height));
   const prop = svg.clientHeight / svg.clientWidth || 1;
-  vista = { x: b.x + b.width / 2 - w / 2, y: b.y + b.height / 2 - (w * prop) / 2, w, h: w * prop };
+  let w = Math.max(x2 - x1, (y2 - y1) / prop) * margen;
+  w = Math.max(w, 12);
+  vista = { x: (x1 + x2) / 2 - w / 2, y: (y1 + y2) / 2 - (w * prop) / 2, w, h: w * prop };
   aplicarVista();
+}
+function irAGrupo(g) {
+  encuadrar(g.codigos, 1.25);
+  seleccionar(null);
+  aviso(`${g.nombre}: ${g.codigos.filter(conocido).length} / ${g.codigos.length}`);
+}
+
+// Centra el mapa en un municipio (desde la lista)
+async function irA(c) {
+  if (enAntioquia() && !SUBREGION_DE[c]) await cambiarModo("colombia");
+  encuadrar([c], 4);
 }
 
 // ---------- 3. Ficha del municipio (abajo) ----------
@@ -254,10 +328,10 @@ function seleccionar(c) {
 }
 function pintarFicha() {
   const c = seleccionado; if (!c) return;
-  const s = SUBREGION_DE[c];
   const v = estado.visitados[c];
-  ficha.querySelector(".f-sub").textContent = s.nombre;
-  ficha.querySelector(".f-sub").style.color = s.color;
+  const sub = SUBREGION_DE[c], dep = DEPTO_DE[c];
+  ficha.querySelector(".f-sub").textContent = sub ? `${dep.nombre} · ${sub.nombre}` : dep.nombre + (ANM.has(c) ? " · Área no municipalizada" : "");
+  ficha.querySelector(".f-sub").style.color = colorDe(c);
   ficha.querySelector(".f-nombre").textContent = NOMBRES[c];
   ficha.querySelector(".f-fecha").textContent = v ? "Marcado el " + formatoFecha(v.fecha) : "Todavía no lo has marcado";
   const btn = ficha.querySelector(".f-btn");
@@ -274,33 +348,40 @@ function formatoFecha(iso) {
   return `${+d} ${meses[+m - 1]} ${a}`;
 }
 
-// ---------- 4. Lista ----------
+// ---------- 4. Lista (por departamento o por subregión) ----------
 const lista = document.getElementById("lista-contenido");
 const buscador = document.getElementById("buscador");
 const sinTildes = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const abiertos = new Set();
+
+function filaMunicipio(c, color) {
+  const fila = document.createElement("label");
+  fila.className = "fila" + (conocido(c) ? " hecho" : "");
+  fila.style.setProperty("--color", color);
+  const nm = conocido(c) ? (estado.visitados[c].medios || []).length : 0;
+  fila.innerHTML = `<input type="checkbox" ${conocido(c) ? "checked" : ""}><span class="nombre">${NOMBRES[c]}</span>
+    ${nm ? `<span class="n-medios">📸 ${nm}</span>` : ""}<button class="ver" title="Ver en el mapa">📍</button>`;
+  fila.querySelector("input").onchange = () => alternar(c);
+  fila.querySelector(".ver").onclick = async (e) => { e.preventDefault(); cambiarPestana("mapa"); await irA(c); seleccionar(c); };
+  return fila;
+}
 
 function pintarLista() {
   const q = sinTildes(buscador.value.trim());
   lista.innerHTML = "";
-  SUBREGIONES.forEach(s => {
-    const cods = s.codigos.filter(c => !q || sinTildes(NOMBRES[c]).includes(q))
+  grupos().forEach(g => {
+    const cods = g.codigos.filter(c => !q || sinTildes(NOMBRES[c]).includes(q))
       .sort((a, b) => NOMBRES[a].localeCompare(NOMBRES[b], "es"));
     if (!cods.length) return;
-    const hechos = s.codigos.filter(conocido).length;
-    const sec = document.createElement("section");
-    sec.style.setProperty("--color", s.color);
-    sec.innerHTML = `<h3><span>${s.nombre}</span><small>${hechos} / ${s.codigos.length}</small></h3>
-      <div class="barra"><i style="width:${hechos / s.codigos.length * 100}%"></i></div>`;
-    cods.forEach(c => {
-      const fila = document.createElement("label");
-      fila.className = "fila" + (conocido(c) ? " hecho" : "");
-      const nm = conocido(c) ? (estado.visitados[c].medios || []).length : 0;
-      fila.innerHTML = `<input type="checkbox" ${conocido(c) ? "checked" : ""}><span class="nombre">${NOMBRES[c]}</span>
-        ${nm ? `<span class="n-medios">📸 ${nm}</span>` : ""}<button class="ver" title="Ver en el mapa">📍</button>`;
-      fila.querySelector("input").onchange = () => alternar(c);
-      fila.querySelector(".ver").onclick = (e) => { e.preventDefault(); cambiarPestana("mapa"); irA(c); seleccionar(c); };
-      sec.appendChild(fila);
-    });
+    const hechos = g.codigos.filter(conocido).length;
+    const sec = document.createElement("details");
+    sec.style.setProperty("--color", g.color);
+    sec.open = !!q || abiertos.has(g.id);
+    sec.innerHTML = `<summary><span>${g.nombre}</span><small>${hechos} / ${g.codigos.length}</small></summary>
+      <div class="barra"><i style="width:${hechos / g.codigos.length * 100}%"></i></div>`;
+    const llenar = () => { if (sec.dataset.lleno) return; sec.dataset.lleno = 1; cods.forEach(c => sec.appendChild(filaMunicipio(c, g.color))); };
+    if (sec.open) llenar();
+    sec.addEventListener("toggle", () => { if (sec.open) { abiertos.add(g.id); llenar(); } else abiertos.delete(g.id); });
     lista.appendChild(sec);
   });
 }
@@ -309,10 +390,12 @@ buscador.addEventListener("input", pintarLista);
 // ---------- 5. Contador y pintado general ----------
 function pintarTodo() {
   const n = Object.keys(estado.visitados).length;
+  const nAnt = SUBREGIONES.reduce((a, s) => a + s.codigos.filter(conocido).length, 0);
   const poner = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
   poner("contador", `<b>${n}</b> / 1.122`);
-  poner("zona-n", `${n} / ${TOTAL_MUNICIPIOS}`);
-  document.getElementById("progreso").style.width = (n / TOTAL_MUNICIPIOS * 100) + "%";
+  poner("zona-n", enAntioquia() ? `Antioquia <b>${nAnt} / ${TOTAL_MUNICIPIOS}</b>` : `Colombia <b>${Math.floor(n / 1122 * 1000) / 10}%</b>`);
+  const prog = document.getElementById("progreso");
+  if (prog) prog.style.width = (enAntioquia() ? nAnt / TOTAL_MUNICIPIOS : n / 1122) * 100 + "%";
   gMunis.querySelectorAll("path").forEach(p => p.classList.toggle("conocido", conocido(p.dataset.c)));
   pintarLista();
   pintarFicha();
@@ -347,11 +430,11 @@ document.getElementById("descargar-copia").onclick = async () => {
     if (b) medios[m.id] = { tipo: b.type, datos: await aBase64(b) };
   }
   const datos = { app: "mi-antioquia", version: 2, fecha: hoy, visitados: estado.visitados, medios };
-  const archivo = new File([JSON.stringify(datos)], `mision-1122-copia-${hoy}.json`, { type: "application/json" });
+  const archivo = new File([JSON.stringify(datos)], `m1122-copia-${hoy}.json`, { type: "application/json" });
   // En el celular intentamos "Compartir" (guardar en Archivos / Drive); si no, descarga normal
   let hecho = false;
   if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
-    try { await navigator.share({ files: [archivo], title: "Copia de Misión 1122" }); hecho = true; }
+    try { await navigator.share({ files: [archivo], title: "Copia de M1122" }); hecho = true; }
     catch (e) { if (e.name === "AbortError") return; }
   }
   if (!hecho) {
@@ -381,7 +464,7 @@ document.getElementById("archivo-copia").onchange = async (e) => {
     }
     await guardarEstado(); pintarTodo(); modal.close();
     aviso(`Copia cargada: ${Object.keys(estado.visitados).length} municipios`);
-  } catch { aviso("Ese archivo no es una copia de Misión 1122"); }
+  } catch { aviso("Ese archivo no es una copia de M1122"); }
 };
 
 function aBase64(blob) {
@@ -414,8 +497,9 @@ function aviso(texto) {
 (async function iniciar() {
   setTimeout(() => document.body.classList.add("lista"), 2500); // nunca dejar la pantalla en negro
   await cargarEstado();
+  if (!MAPAS[estado.modo]) estado.modo = "colombia";
   try { await dibujarMapa(); }
-  catch (e) { document.getElementById("vista-mapa").insertAdjacentHTML("beforeend", `<p class="error">No se pudo cargar el mapa. Revisa tu conexión y vuelve a abrir la app.</p>`); }
+  catch (e) { console.error(e); document.getElementById("vista-mapa").insertAdjacentHTML("beforeend", `<p class="error">No se pudo cargar el mapa. Revisa tu conexión y vuelve a abrir la app.</p>`); }
   pintarTodo();
   document.body.classList.add("lista");
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});

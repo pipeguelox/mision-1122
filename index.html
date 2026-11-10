@@ -3,26 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Misión 1122</title>
+<title>M1122</title>
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Misión 1122">
+<meta name="apple-mobile-web-app-title" content="M1122">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css?v=8">
+<link rel="stylesheet" href="estilos.css?v=9">
 </head>
 <body>
   <header>
     <div class="titulo">
-      <h1>Misión <span>1122</span></h1>
+      <h1>M<span>1122</span></h1>
       <button id="btn-copia">💾 Guardar copia</button>
     </div>
     <div class="avance">
-      <div class="zona">Antioquia <b id="zona-n">0 / 125</b></div>
+      <div class="zona" id="zona-n"></div>
       <div class="pista"><div id="progreso"></div></div>
       <div id="contador"><b>0</b> / 1.122</div>
     </div>
@@ -36,13 +36,14 @@
         <g id="g-rios"></g>
         <g id="g-etiquetas"></g>
       </svg>
+      <div class="modo"><button data-m="colombia">Colombia</button><button data-m="antioquia">Antioquia</button></div>
       <div class="leyenda" id="leyenda"></div>
       <div class="zoom">
         <button id="zoom-mas" aria-label="Acercar">+</button>
         <button id="zoom-menos" aria-label="Alejar">−</button>
         <button id="zoom-reset" aria-label="Ver todo">⤢</button>
       </div>
-      <div class="credito">Ríos © OpenStreetMap · Municipios: DANE</div>
+      <div class="credito">Mapas: DANE · Ríos: Natural Earth y © OpenStreetMap</div>
       <button class="btn-compartir flotante">📤 Compartir</button>
       <div id="ficha">
         <button class="f-cerrar" aria-label="Cerrar">×</button>
@@ -87,7 +88,7 @@
   </dialog>
 
   <dialog id="modal-instalar">
-    <h2>📲 Instala Misión 1122</h2>
+    <h2>📲 Instala M1122</h2>
     <p>Si abres el link desde WhatsApp, Instagram o la app de Claude, se abre una ventana temporal que <b>borra todo al cerrarla</b>.</p>
     <p><b>iPhone:</b></p>
     <ol><li>Abre el link en <b>Safari</b>.</li><li>Toca el botón Compartir (cuadro con flecha).</li><li>Elige <b>"Agregar a pantalla de inicio"</b>.</li></ol>
@@ -146,20 +147,17 @@
     window.addEventListener("error", e => { document.body.classList.add("lista"); });
     window.addEventListener("unhandledrejection", e => { document.body.classList.add("lista"); });
   </script>
-  <script src="datos.js?v=8"></script>
-  <script>
-    document.getElementById("leyenda").innerHTML =
-      SUBREGIONES.map(s => `<div><i style="background:${s.color}"></i>${s.nombre}</div>`).join("");
-  </script>
+  <script src="datos.js?v=9"></script>
+  <script src="colombia-datos.js?v=9"></script>
   <script>
     const instalada = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
     if (!instalada) document.getElementById("instalar").classList.add("visible");
     document.getElementById("ver-instalar").onclick = () => document.getElementById("modal-instalar").showModal();
     document.getElementById("cerrar-instalar").onclick = () => document.getElementById("modal-instalar").close();
   </script>
-  <script src="app.js?v=8"></script>
-  <script src="medios.js?v=8"></script>
-  <script src="logros.js?v=8"></script>
-  <script src="compartir.js?v=8"></script>
+  <script src="app.js?v=9"></script>
+  <script src="medios.js?v=9"></script>
+  <script src="logros.js?v=9"></script>
+  <script src="compartir.js?v=9"></script>
 </body>
 </html>
